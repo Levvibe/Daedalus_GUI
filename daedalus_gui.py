@@ -200,13 +200,12 @@ class ROVGui:
 
         if mode == "full":
             self.destroy_mini_window()
-            # Use maximized/zoomed for practical fullscreen that still allows mode switching.
             try:
-                self.root.state("zoomed")
+                self.root.state("normal")
             except Exception:
-                w = self.screen_w
-                h = self.screen_h
-                self.root.geometry(f"{w}x{h}+0+0")
+                pass
+            # Fill the screen without entering locked exclusive fullscreen.
+            self.root.geometry(f"{self.screen_w}x{self.screen_h}+0+0")
 
         elif mode == "quarter":
             try:
@@ -235,7 +234,7 @@ class ROVGui:
                 pass
             # Actual left-half style layout.
             w = max(860, int(self.screen_w * 0.50))
-            h = max(760, self.screen_h)
+            h = max(760, int(self.screen_h * 0.90))
             x = 0
             y = 0
             self.root.geometry(f"{w}x{h}+{x}+{y}")
@@ -650,7 +649,7 @@ class ROVGui:
             dot_x = cx + value * axis_len
             if abs(value) > 1e-3:
                 canvas.create_line(cx, cy, dot_x, cy, fill=GREEN, width=5, capstyle=tk.ROUND)
-                canvas.create_oval(dot_x - 9, cy - 9, dot_x + 9, cy + 9, fill=GREEN, outline="")
+            canvas.create_oval(dot_x - 9, cy - 9, dot_x + 9, cy + 9, fill=GREEN, outline="")
 
             label_y = cy - 18 if label_side == "top" else cy + 18
             canvas.create_text(cx, label_y, text=label, fill=MUTED, font=("Arial", 10, "bold"), angle=label_angle)
@@ -660,7 +659,7 @@ class ROVGui:
             dot_y = cy - value * axis_len
             if abs(value) > 1e-3:
                 canvas.create_line(cx, cy, cx, dot_y, fill=GREEN, width=5, capstyle=tk.ROUND)
-                canvas.create_oval(cx - 9, dot_y - 9, cx + 9, dot_y + 9, fill=GREEN, outline="")
+            canvas.create_oval(cx - 9, dot_y - 9, cx + 9, dot_y + 9, fill=GREEN, outline="")
 
             if label_side == "right":
                 canvas.create_text(cx + 20, cy, text=label, fill=MUTED, font=("Arial", 10, "bold"), angle=label_angle)
