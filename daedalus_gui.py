@@ -19,7 +19,8 @@ AXIS_SURGE = 1  # stick forward/back
 AXIS_TURN = 2  # stick twist / yaw
 AXIS_TURTLE = 3  # base throttle/slider on Logitech Extreme 3D Pro style joystick
 
-TURTLE_AXIS_INVERTED = True
+# Flipped per pilot request (turtle lever polarity swap).
+TURTLE_AXIS_INVERTED = False
 TURTLE_MIN_SCALE = 0.15
 MAX_PHYSICAL_BUTTONS = 12
 
@@ -426,6 +427,7 @@ class ROVGui:
         self.turtle_raw = -1.0
 
         # Controller input
+        inp.connected = bool(self.joystick is not None and self.joystick.get_init()) if self.joystick is not None else False
         if self.pygame_ready:
             if self.joystick is None:
                 self.maybe_reconnect_controller()
@@ -755,7 +757,12 @@ class ROVGui:
             font=("Arial", 22 if not tiny else 18, "bold"),
         )
 
-        conn = "CONTROLLER CONNECTED" if self.input.connected else "KEYBOARD FALLBACK"
+        if self.input.connected:
+            conn = "CONTROLLER CONNECTED"
+        elif pygame is None:
+            conn = "KEYBOARD FALLBACK (PYGAME MISSING)"
+        else:
+            conn = "KEYBOARD FALLBACK"
         canvas.create_text(
             x1 + 18,
             y1 + 122,
@@ -865,23 +872,23 @@ class ROVGui:
             ("Active Cam", self.active_camera),
         ]
 
-        rows_y = y1 + 130
+        rows_y = y1 + 122
         col_gap = 10
         col_w = (x2 - x1 - 42 - col_gap) / 2
-        row_h = 38
+        row_h = 34
         for i, (label, value) in enumerate(fields):
             col = i % 2
             row = i // 2
             rx1 = x1 + 16 + col * (col_w + col_gap)
-            ry1 = rows_y + row * (row_h + 8)
+            ry1 = rows_y + row * (row_h + 6)
             rx2 = rx1 + col_w
             ry2 = ry1 + row_h
             self.draw_round_rect(canvas, rx1, ry1, rx2, ry2, r=14, fill=PANEL_2, outline=GRID, width=1)
             canvas.create_text(rx1 + 12, ry1 + 19, text=label.upper(), anchor="w", fill=MUTED, font=("Arial", 9, "bold"))
             canvas.create_text(rx2 - 12, ry1 + 19, text=value, anchor="e", fill=TEXT, font=("Arial", 11, "bold"))
 
-        pills_y = y2 - 72
-        canvas.create_text(x1 + 16, pills_y - 20, text="CAMERA BUTTONS", anchor="w", fill=MUTED, font=("Arial", 10, "bold"))
+        pills_y = y2 - 52
+        canvas.create_text(x1 + 16, pills_y - 10, text="CAMERA BUTTONS", anchor="w", fill=MUTED, font=("Arial", 10, "bold"))
         pill_w = max(70, int((x2 - x1 - 48) / 4))
         gap = 6
         for i, name in enumerate(CAMERA_ORDER):
@@ -909,7 +916,7 @@ class ROVGui:
 
         canvas.create_text(
             x1 + 16,
-            y2 - 12,
+            y2 - 8,
             text="External camera UI uses the other half of the screen",
             anchor="w",
             fill=MUTED,
