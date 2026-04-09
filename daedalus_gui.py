@@ -1,6 +1,7 @@
 import math
 import time
 import tkinter as tk
+from typing import Any, cast
 
 try:
     import pygame
@@ -223,9 +224,10 @@ class ROVGui:
             info_h = max(280, int(self.screen_h * 0.34))
             info_x = 30 + main_w
             info_y = 20
-            self.mini_info_win.geometry(f"{info_w}x{info_h}+{info_x}+{info_y}")
-            self.mini_info_win.deiconify()
-            self.mini_info_win.lift()
+            if self.mini_info_win is not None:
+                self.mini_info_win.geometry(f"{info_w}x{info_h}+{info_x}+{info_y}")
+                self.mini_info_win.deiconify()
+                self.mini_info_win.lift()
 
         else:  # half
             self.destroy_mini_window()
@@ -250,14 +252,15 @@ class ROVGui:
             return
 
         try:
-            if not pygame.get_init():
-                pygame.init()
-            if not pygame.joystick.get_init():
-                pygame.joystick.init()
+            pg = cast(Any, pygame)
+            if not pg.get_init():
+                pg.init()
+            if not pg.joystick.get_init():
+                pg.joystick.init()
 
-            count = pygame.joystick.get_count()
+            count = pg.joystick.get_count()
             if count > 0:
-                self.joystick = pygame.joystick.Joystick(0)
+                self.joystick = pg.joystick.Joystick(0)
                 if not self.joystick.get_init():
                     self.joystick.init()
                 self.pygame_ready = True
@@ -434,12 +437,22 @@ class ROVGui:
 
             if self.joystick is not None:
                 try:
-                    pygame.event.pump()
+                    pg = cast(Any, pygame)
+                    pg.event.pump()
                     inp.connected = self.joystick.get_init()
 
-                    raw_strafe = self.axis_value(AXIS_STRAFE, 0.0)
-                    raw_surge = -self.axis_value(AXIS_SURGE, 0.0)
-                    raw_turn = self.axis_value(AXIS_TURN, 0.0)
+                    # Read controller the same way as the known-working client code:
+                    # enumerate all axes/buttons/hats first, then pull mapped indices.
+                    num_axes = self.joystick.get_numaxes()
+                    num_buttons = self.joystick.get_numbuttons()
+                    num_hats = self.joystick.get_numhats()
+                    raw_axes = [self.joystick.get_axis(i) for i in range(num_axes)]
+                    _raw_buttons = [self.joystick.get_button(i) for i in range(num_buttons)]
+                    _raw_hats = [self.joystick.get_hat(i) for i in range(num_hats)]
+
+                    raw_strafe = raw_axes[AXIS_STRAFE] if len(raw_axes) > AXIS_STRAFE else 0.0
+                    raw_surge = -(raw_axes[AXIS_SURGE] if len(raw_axes) > AXIS_SURGE else 0.0)
+                    raw_turn = raw_axes[AXIS_TURN] if len(raw_axes) > AXIS_TURN else 0.0
 
                     inp.raw_strafe = raw_strafe
                     inp.raw_turn = raw_turn
@@ -449,7 +462,7 @@ class ROVGui:
                     surge = self.apply_deadzone(raw_surge)
                     turn = self.apply_deadzone(raw_turn)
 
-                    raw_turtle = self.axis_value(AXIS_TURTLE, -1.0)
+                    raw_turtle = raw_axes[AXIS_TURTLE] if len(raw_axes) > AXIS_TURTLE else -1.0
                     if TURTLE_AXIS_INVERTED:
                         raw_turtle = -raw_turtle
                     raw_turtle = max(-1.0, min(1.0, raw_turtle))
